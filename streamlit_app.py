@@ -1,10 +1,12 @@
 import streamlit as st
-import nest_asyncio
 import asyncio
 from pyppeteer import launch
 import json
 import pandas as pd
-from threading import Thread
+import nest_asyncio
+
+# Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
+nest_asyncio.apply()
 
 # A global list to store extracted data
 extracted_data = []
@@ -32,7 +34,7 @@ async def intercept_request(req):
     await req.continue_()
 
 async def scrape_website(url):
-    browser = await launch()
+    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False)
     page = await browser.newPage()
 
     # Setting up request interception
@@ -49,18 +51,11 @@ async def scrape_website(url):
 
     return df
 
-def run_asyncio(func, *args):
-    """Utility function to run an asyncio function using threading."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    return loop.run_until_complete(func(*args))
-
 # Streamlit UI
 st.title("Web Scraper")
 
 url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/accessories-and-software/")
 
 if st.button("Scrape"):
-    # Use threading to run the async function
-    df = run_asyncio(scrape_website, url)
+    df = asyncio.run(scrape_website(url))
     st.write(df)
