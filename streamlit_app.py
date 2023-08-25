@@ -5,15 +5,17 @@ import json
 import pandas as pd
 import nest_asyncio
 
-def ensure_event_loop():
+def get_or_create_eventloop():
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            raise RuntimeError("Loop is closed!")
-    except RuntimeError:
-        asyncio.set_event_loop(asyncio.new_event_loop())
+        return asyncio.get_event_loop()
+    except RuntimeError as ex:
+        if "There is no current event loop in thread" in str(ex):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return asyncio.get_event_loop()
 
-ensure_event_loop()
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 # Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
 nest_asyncio.apply()
