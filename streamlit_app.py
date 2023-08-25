@@ -5,16 +5,6 @@ import json
 import pandas as pd
 import nest_asyncio
 
-def ensure_event_loop():
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            raise RuntimeError("Loop is closed!")
-    except RuntimeError:
-        asyncio.set_event_loop(asyncio.new_event_loop())
-
-ensure_event_loop()
-
 # Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
 nest_asyncio.apply()
 
@@ -44,14 +34,29 @@ async def intercept_request(req):
     await req.continue_()
 
 async def scrape_website(url):
-    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False, timeout=20000)
+    browser_args = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+        '--window-size=1920x1080'
+    ]
+
+    browser = await launch(
+        args=browser_args,
+        handleSIGINT=False,
+        handleSIGTERM=False,
+        handleSIGHUP=False,
+        timeout=20000  # 20 seconds timeout
+    )
     page = await browser.newPage()
 
     # Setting up request interception
     await page.setRequestInterception(True)
     page.on('request', lambda req: asyncio.ensure_future(intercept_request(req)))
 
-    await page.goto(url)
+    await page.goto(url, timeout=20000)  # 20 seconds timeout
     await asyncio.sleep(10)  # wait for 10 seconds to ensure all requests are captured
 
     await browser.close()
@@ -69,6 +74,7 @@ url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/acce
 if st.button("Scrape"):
     df = asyncio.run(scrape_website(url))
     st.write(df)
+
 
 
 
