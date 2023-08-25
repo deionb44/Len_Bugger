@@ -5,7 +5,11 @@ import json
 import pandas as pd
 import nest_asyncio
 
-# Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
+# Explicitly create and set a new event loop for the current thread
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+# Now apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
 nest_asyncio.apply()
 
 # A global list to store extracted data
@@ -59,3 +63,6 @@ url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/acce
 if st.button("Scrape"):
     df = asyncio.run(scrape_website(url))
     st.write(df)
+
+
+
