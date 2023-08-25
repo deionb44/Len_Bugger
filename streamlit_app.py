@@ -5,17 +5,19 @@ import json
 import pandas as pd
 import nest_asyncio
 
-def get_or_create_eventloop():
+# Create a context manager to run an event loop
+@contextmanager
+def setup_event_loop():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        return asyncio.get_event_loop()
-    except RuntimeError as ex:
-        if "There is no current event loop in thread" in str(ex):
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            return asyncio.get_event_loop()
+        yield loop
+    finally:
+        loop.close()
+        asyncio.set_event_loop(None)
 
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
+# Use the context manager to create an event loop
+with setup_event_loop() as loop:
 
 # Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
 nest_asyncio.apply()
@@ -64,17 +66,16 @@ async def scrape_website(url):
     return df
 
 # Streamlit UI
-st.title("Web Scraper")
+    st.title("Web Scraper")
 
-url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/accessories-and-software/")
+    url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/accessories-and-software/")
 
-if st.button("Scrape"):
-    loop = asyncio.get_event_loop()
-    df = loop.run_until_complete(scrape_website(url))
-    if df is not None:
-        st.write(df)
-    else:
-        st.write("Error occurred while scraping the website.")
+    if st.button("Scrape"):
+        df = loop.run_until_complete(scrape_website(url))
+        if df is not None:
+            st.write(df)
+        else:
+            st.write("Error occurred while scraping the website.")
 
 
 
