@@ -9,7 +9,6 @@ import chromedriver_autoinstaller
 extracted_data = []
 
 def scrape_website(url):
-    chromedriver_autoinstaller.install()  # Automatically download and install Chrome Driver
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
@@ -18,11 +17,11 @@ def scrape_website(url):
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1920x1080')
 
+    # Specify the path to your Chrome executable
+    chrome_options.binary_location = '/path/to/chrome/executable'
+
     service = Service(chromedriver_autoinstaller.get_chrome_driver_filename())
     driver = webdriver.Chrome(service=service, options=chrome_options)
-
-    driver.get(url)
-
     # Here, you can use Selenium functions to extract your data.
     # For the sake of example, I'll simulate extracting data from the webpage source.
     # You should replace this with appropriate Selenium code for your needs.
