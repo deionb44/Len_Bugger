@@ -1,24 +1,20 @@
-import asyncio
-from contextlib import contextmanager
 import streamlit as st
+import asyncio
 from pyppeteer import launch
 import json
 import pandas as pd
 import nest_asyncio
 
-# Create a context manager to run an event loop
-@contextmanager
-def setup_event_loop():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+def ensure_event_loop():
     try:
-        yield loop
-    finally:
-        loop.close()
-        asyncio.set_event_loop(None)
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("Loop is closed!")
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
 
-# Use the context manager to create an event loop
-with setup_event_loop() as loop:
+ensure_event_loop()
+
 # Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
 nest_asyncio.apply()
 
@@ -48,7 +44,7 @@ async def intercept_request(req):
     await req.continue_()
 
 async def scrape_website(url):
-    browser = await launch(headless=True, handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False, timeout=30000)  # Increased timeout and added headless mode
+    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False, timeout=20000)
     page = await browser.newPage()
 
     # Setting up request interception
@@ -66,16 +62,13 @@ async def scrape_website(url):
     return df
 
 # Streamlit UI
-    st.title("Web Scraper")
+st.title("Web Scraper")
 
-    url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/accessories-and-software/")
+url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/accessories-and-software/")
 
-    if st.button("Scrape"):
-        df = loop.run_until_complete(scrape_website(url))
-        if df is not None:
-            st.write(df)
-        else:
-            st.write("Error occurred while scraping the website.")
+if st.button("Scrape"):
+    df = asyncio.run(scrape_website(url))
+    st.write(df)
 
 
 
