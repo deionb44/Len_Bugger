@@ -5,6 +5,10 @@ import json
 import pandas as pd
 import nest_asyncio
 
+# Check if event loop exists, if not, set one
+if not asyncio.get_event_loop():
+    asyncio.set_event_loop(asyncio.new_event_loop())
+
 # Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
 nest_asyncio.apply()
 
