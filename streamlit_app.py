@@ -5,11 +5,11 @@ import json
 import pandas as pd
 import nest_asyncio
 
-# Check if event loop exists, if not, set one
-if not asyncio.get_event_loop():
-    asyncio.set_event_loop(asyncio.new_event_loop())
+# Explicitly create and set a new event loop for the current thread
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
-# Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
+# Now apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
 nest_asyncio.apply()
 
 # A global list to store extracted data
@@ -38,8 +38,7 @@ async def intercept_request(req):
     await req.continue_()
 
 async def scrape_website(url):
-    # Launching the browser with a 20-second timeout
-    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False, timeout=20000)
+    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False)
     page = await browser.newPage()
 
     # Setting up request interception
