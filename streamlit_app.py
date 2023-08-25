@@ -1,14 +1,9 @@
 import streamlit as st
 import pandas as pd
-import json
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import chromedriver_autoinstaller
-
-# Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
-import nest_asyncio
-nest_asyncio.apply()
 
 # A global list to store extracted data
 extracted_data = []
@@ -49,6 +44,7 @@ url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/acce
 if st.button("Scrape"):
     df = scrape_website(url)
     st.write(df)
+
 
 
 
