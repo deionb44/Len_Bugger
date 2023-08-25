@@ -44,14 +44,24 @@ async def intercept_request(req):
     await req.continue_()
 
 async def scrape_website(url):
-    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False, timeout=20000)
+    browser = await launch(
+        handleSIGINT=False,
+        handleSIGTERM=False,
+        handleSIGHUP=False,
+        timeout=60000  # Increase timeout to 60 seconds
+    )
     page = await browser.newPage()
 
     # Setting up request interception
     await page.setRequestInterception(True)
     page.on('request', lambda req: asyncio.ensure_future(intercept_request(req)))
 
-    await page.goto(url)
+    response = await page.goto(url)
+    if response.status != 200:
+        print(f"Error loading page. Status code: {response.status}")
+        await browser.close()
+        return None
+
     await asyncio.sleep(10)  # wait for 10 seconds to ensure all requests are captured
 
     await browser.close()
@@ -68,7 +78,10 @@ url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/acce
 
 if st.button("Scrape"):
     df = asyncio.run(scrape_website(url))
-    st.write(df)
+    if df is not None:
+        st.write(df)
+    else:
+        st.write("Error occurred while scraping the website.")
 
 
 
