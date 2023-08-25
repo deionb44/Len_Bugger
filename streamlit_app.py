@@ -1,48 +1,75 @@
 import streamlit as st
+import asyncio
+from pyppeteer import launch
+import json
 import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-import chromedriver_autoinstaller
+import nest_asyncio
+
+def ensure_event_loop():
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("Loop is closed!")
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
+ensure_event_loop()
+
+# Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
+nest_asyncio.apply()
 
 # A global list to store extracted data
 extracted_data = []
 
-def scrape_website(url):
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-accelerated-2d-canvas')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--window-size=1920x1080')
+async def intercept_request(req):
+    if "interact?" in req.url:
+        post_data = req.postData
+        try:
+            data = json.loads(post_data)
+            custom_dimensions = data.get("events", [{}])[0].get("xdm", {}).get("_experience", {}).get("analytics", {}).get("customDimensions", {})
 
-    # Specify the path to your Chrome executable
-    chrome_options.binary_location = '/path/to/chrome/executable'
+            # Extract eVars
+            evars = custom_dimensions.get("eVars", {})
+            for key, value in evars.items():
+                extracted_data.append({"tag": key, "value": str(value)})
 
-    service = Service(chromedriver_autoinstaller.get_chrome_driver_filename())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    # Here, you can use Selenium functions to extract your data.
-    # For the sake of example, I'll simulate extracting data from the webpage source.
-    # You should replace this with appropriate Selenium code for your needs.
-    data = driver.page_source
-    extracted_data.append({'data': data[:100]})  # Just taking the first 100 characters for demo purposes
+            # Extract props
+            props = custom_dimensions.get("props", {})
+            for key, value in props.items():
+                extracted_data.append({"tag": key, "value": str(value)})
+
+        except json.JSONDecodeError:
+            pass
+
+    await req.continue_()
+
+async def scrape_website(url):
+    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False, timeout=20000, headless=True)  # Specify headless mode
+    page = await browser.newPage()
+
+    # Setting up request interception
+    await page.setRequestInterception(True)
+    page.on('request', lambda req: asyncio.ensure_future(intercept_request(req)))
+
+    await page.goto(url)
+    await asyncio.sleep(10)  # wait for 10 seconds to ensure all requests are captured
+
+    await browser.close()
 
     # Convert the extracted data to a pandas DataFrame
     df = pd.DataFrame(extracted_data)
 
-    driver.quit()
-
     return df
 
 # Streamlit UI
-st.title("Web Scraper using Selenium")
+st.title("Web Scraper")
 
 url = st.text_input("Enter the website URL:", "https://www.lenovo.com/us/en/accessories-and-software/")
 
 if st.button("Scrape"):
-    df = scrape_website(url)
+    df = asyncio.run(scrape_website(url))
     st.write(df)
+
 
 
 
