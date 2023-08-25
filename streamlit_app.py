@@ -1,5 +1,6 @@
-import streamlit as st
 import asyncio
+from contextlib import contextmanager
+import streamlit as st
 from pyppeteer import launch
 import json
 import pandas as pd
@@ -18,7 +19,6 @@ def setup_event_loop():
 
 # Use the context manager to create an event loop
 with setup_event_loop() as loop:
-
 # Apply nest_asyncio to allow nested use of asyncio.run and loop.run_until_complete
 nest_asyncio.apply()
 
