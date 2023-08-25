@@ -44,7 +44,7 @@ async def intercept_request(req):
     await req.continue_()
 
 async def scrape_website(url):
-    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False, timeout=20000, headless=True)  # Specify headless mode
+    browser = await launch(handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False, timeout=20000)
     page = await browser.newPage()
 
     # Setting up request interception
